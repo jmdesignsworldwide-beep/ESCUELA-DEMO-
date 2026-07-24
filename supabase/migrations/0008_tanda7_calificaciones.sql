@@ -78,6 +78,10 @@ create trigger trg_calif_inmutable
   for each row execute function private.bloquear_calif_cerrada();
 
 -- ── Corrección autorizada por el director (bitácora obligatoria) ────────
+-- SECURITY INVOKER: se autoriza a sí misma (solo director) y los usuarios de
+-- la API no pueden fijar el GUC de bypass por su cuenta, así que la
+-- inmutabilidad se mantiene. Invoker evita exponer una función SECURITY
+-- DEFINER a `authenticated` (Advisor limpia).
 create or replace function public.corregir_calificacion(
   p_calificacion uuid,
   p_valor numeric,
@@ -85,7 +89,7 @@ create or replace function public.corregir_calificacion(
 )
 returns void
 language plpgsql
-security definer
+security invoker
 set search_path = ''
 as $$
 declare v_anterior numeric;
