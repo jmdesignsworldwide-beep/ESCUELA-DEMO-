@@ -81,6 +81,26 @@ export async function getHermanos(
   return (data as Estudiante[]) ?? [];
 }
 
+/** Estudiantes activos matriculados en una sección (para pase de lista). */
+export async function getEstudiantesDeSeccion(
+  seccionId: string,
+  anioId: string,
+): Promise<Estudiante[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("matriculas")
+    .select("estudiante:estudiantes(*)")
+    .eq("seccion_id", seccionId)
+    .eq("anio_id", anioId)
+    .eq("estado", "activa");
+  const rows =
+    (data as unknown as { estudiante: Estudiante | null }[] | null) ?? [];
+  return rows
+    .map((r) => r.estudiante)
+    .filter((e): e is Estudiante => e !== null)
+    .sort((a, b) => a.apellidos.localeCompare(b.apellidos));
+}
+
 export async function getTutores(sedeId: string): Promise<Tutor[]> {
   const supabase = createClient();
   const { data } = await supabase
