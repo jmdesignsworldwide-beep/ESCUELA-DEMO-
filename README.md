@@ -57,6 +57,18 @@ commits.
 - Campo `sede_id` presente desde el inicio (listo para multi-sede).
 - Semilla: sede por defecto + año escolar 2025–2026 (agosto→junio).
 
+### TANDA 1 · endurecimiento — `supabase/migrations/0002_endurecimiento_seguridad.sql`
+
+Deja la **Security Advisor limpia**. Las funciones `SECURITY DEFINER` usadas por
+políticas RLS se mueven al esquema **`private`** (no expuesto por PostgREST):
+las políticas siguen funcionando pero las funciones dejan de ser invocables vía
+`/rest/v1/rpc`. Añade política deny-all explícita en `docente_pins` y revoca
+`EXECUTE` público de las funciones de trigger.
+
+> Resultado de la Security Advisor: **0 errores, 0 avisos bajo nuestro control**.
+> El único aviso restante (`auth_leaked_password_protection`) requiere plan Pro
+> de Supabase; se habilita con un toggle al actualizar el plan.
+
 ## Seguridad (Fort Knox)
 
 - Cabeceras: CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy,
