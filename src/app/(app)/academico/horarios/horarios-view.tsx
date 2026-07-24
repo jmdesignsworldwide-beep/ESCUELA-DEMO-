@@ -129,7 +129,7 @@ export function HorariosView({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between print:hidden">
         <div className="flex flex-col gap-3 sm:flex-row">
           <div className="space-y-1.5">
             <Label className="text-xs">Ver por</Label>

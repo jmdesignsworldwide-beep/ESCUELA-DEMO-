@@ -158,27 +158,17 @@
   }
 }
 
-/* Impresión / exportación a PDF: mostrar solo el área marcada. */
+/* Impresión / exportación a PDF. */
 @media print {
   body {
     background: #ffffff;
   }
-  body * {
-    visibility: hidden;
-  }
-  #print-horario,
-  #print-horario * {
-    visibility: visible;
-  }
-  #print-horario {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    border: none;
-    box-shadow: none;
-  }
-  .print\:hidden {
+  /* El chrome de la app y controles no se imprimen (usar .no-imprimir). */
+  .no-imprimir {
     display: none !important;
+  }
+  /* Cada documento en un lote inicia en página nueva. */
+  .doc-page {
+    break-inside: avoid;
   }
 }

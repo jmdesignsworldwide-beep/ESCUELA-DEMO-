@@ -31,7 +31,7 @@ export function AppShell({
       {/* ── Sidebar de escritorio ─────────────────────────────── */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-30 hidden border-r border-border bg-card/70 backdrop-blur-xl transition-[width] duration-300 lg:flex lg:flex-col",
+          "fixed inset-y-0 left-0 z-30 hidden border-r border-border bg-card/70 backdrop-blur-xl transition-[width] duration-300 lg:flex lg:flex-col print:hidden",
           collapsed ? "w-[4.5rem]" : "w-64",
         )}
       >
@@ -108,7 +108,7 @@ export function AppShell({
           collapsed ? "lg:pl-[4.5rem]" : "lg:pl-64",
         )}
       >
-        <header className="glass sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border px-4 sm:px-6">
+        <header className="glass sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border px-4 sm:px-6 print:hidden">
           <Button
             variant="ghost"
             size="icon"
