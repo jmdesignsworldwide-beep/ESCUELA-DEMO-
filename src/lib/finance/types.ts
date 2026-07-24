@@ -49,6 +49,8 @@ export interface ConfigFinanciera {
   desc_4to: number;
   mora_monto: number;
   mora_dia: number;
+  bloqueo_por_morosidad?: boolean;
+  dias_gracia?: number;
 }
 
 export interface ConceptoCobro {
