@@ -59,6 +59,18 @@ export async function getConteoAsignaciones(
   return map;
 }
 
+/** Todas las asignaciones docente↔sección↔asignatura del año. */
+export async function getAsignacionesAnio(
+  anioId: string,
+): Promise<DocenteSeccion[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("docente_secciones")
+    .select("*")
+    .eq("anio_id", anioId);
+  return (data as DocenteSeccion[]) ?? [];
+}
+
 export async function getDocumentosEmpleado(
   empleadoId: string,
 ): Promise<EmpleadoDocumento[]> {

@@ -157,3 +157,28 @@
     backdrop-filter: saturate(180%) blur(12px);
   }
 }
+
+/* Impresión / exportación a PDF: mostrar solo el área marcada. */
+@media print {
+  body {
+    background: #ffffff;
+  }
+  body * {
+    visibility: hidden;
+  }
+  #print-horario,
+  #print-horario * {
+    visibility: visible;
+  }
+  #print-horario {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    border: none;
+    box-shadow: none;
+  }
+  .print\:hidden {
+    display: none !important;
+  }
+}
