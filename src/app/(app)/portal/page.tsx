@@ -8,6 +8,7 @@ import {
   getPortalAsistencia,
   getPortalFinanzas,
 } from "@/lib/portal/queries";
+import { getCircularesVisibles } from "@/lib/comms/queries";
 
 export const metadata: Metadata = { title: "Portal de familias" };
 export const dynamic = "force-dynamic";
@@ -29,10 +30,11 @@ export default async function PortalPage({
   const seleccionado =
     estudiantes.find((e) => e.estudiante_id === selId) ?? primero;
 
-  const [calificaciones, asistencia, finanzas] = await Promise.all([
+  const [calificaciones, asistencia, finanzas, circulares] = await Promise.all([
     getPortalCalificaciones(seleccionado.estudiante_id),
     getPortalAsistencia(seleccionado.estudiante_id),
     getPortalFinanzas(seleccionado.estudiante_id),
+    getCircularesVisibles(),
   ]);
 
   return (
@@ -44,6 +46,7 @@ export default async function PortalPage({
       calificaciones={calificaciones}
       asistencia={asistencia}
       finanzas={finanzas}
+      circulares={circulares}
     />
   );
 }

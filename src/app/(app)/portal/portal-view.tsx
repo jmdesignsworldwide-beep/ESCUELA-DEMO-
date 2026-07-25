@@ -10,6 +10,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   CircleDollarSign,
+  Megaphone,
+  Bell,
 } from "lucide-react";
 import {
   Card,
@@ -27,6 +29,8 @@ import type {
   PortalAsistencia,
   PortalCargo,
 } from "@/lib/portal/types";
+import type { CircularVisible } from "@/lib/comms/types";
+import { TIPO_CIRCULAR_LABELS } from "@/lib/comms/types";
 
 export function PortalView({
   esTutor,
@@ -36,6 +40,7 @@ export function PortalView({
   calificaciones,
   asistencia,
   finanzas,
+  circulares,
 }: {
   esTutor: boolean;
   nombreUsuario: string;
@@ -44,6 +49,7 @@ export function PortalView({
   calificaciones: PortalCalificacion[];
   asistencia: PortalAsistencia;
   finanzas: PortalCargo[];
+  circulares: CircularVisible[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -109,7 +115,7 @@ export function PortalView({
       </Card>
 
       <Tabs defaultValue="academico">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="academico" className="gap-1.5">
             <GraduationCap className="h-4 w-4" />
             <span className="hidden sm:inline">Académico</span>
@@ -121,6 +127,10 @@ export function PortalView({
           <TabsTrigger value="finanzas" className="gap-1.5">
             <Wallet className="h-4 w-4" />
             <span className="hidden sm:inline">Finanzas</span>
+          </TabsTrigger>
+          <TabsTrigger value="avisos" className="gap-1.5">
+            <Megaphone className="h-4 w-4" />
+            <span className="hidden sm:inline">Avisos</span>
           </TabsTrigger>
         </TabsList>
 
@@ -226,6 +236,49 @@ export function PortalView({
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ── Avisos / circulares (audiencia hermética) ── */}
+        <TabsContent value="avisos" className="mt-3 space-y-3">
+          {circulares.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center gap-2 py-10 text-center text-muted-foreground">
+                <Bell className="h-7 w-7 opacity-40" />
+                <p className="text-sm">No hay avisos para ti por ahora.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            circulares.map((c) => (
+              <Card
+                key={c.id}
+                className={c.tipo === "urgente" ? "border-destructive/40" : ""}
+              >
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    {c.tipo === "urgente" ? (
+                      <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" />
+                    ) : c.tipo === "aviso" ? (
+                      <Bell className="h-4 w-4 shrink-0 text-warning" />
+                    ) : (
+                      <Megaphone className="h-4 w-4 shrink-0 text-primary" />
+                    )}
+                    {c.titulo}
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    {TIPO_CIRCULAR_LABELS[c.tipo]}
+                    {c.publicada_at
+                      ? ` · ${formatFechaRD(new Date(c.publicada_at))}`
+                      : ""}
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <p className="whitespace-pre-line text-sm leading-6 text-muted-foreground">
+                    {c.cuerpo}
+                  </p>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </TabsContent>
       </Tabs>
     </div>
