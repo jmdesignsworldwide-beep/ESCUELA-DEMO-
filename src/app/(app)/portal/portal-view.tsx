@@ -12,6 +12,9 @@ import {
   CircleDollarSign,
   Megaphone,
   Bell,
+  Award,
+  ThumbsDown,
+  Sparkles,
 } from "lucide-react";
 import {
   Card,
@@ -31,6 +34,8 @@ import type {
 } from "@/lib/portal/types";
 import type { CircularVisible } from "@/lib/comms/types";
 import { TIPO_CIRCULAR_LABELS } from "@/lib/comms/types";
+import type { ConductaPortal } from "@/lib/discipline/types";
+import { GRAVEDAD_LABELS } from "@/lib/discipline/types";
 
 export function PortalView({
   esTutor,
@@ -41,6 +46,7 @@ export function PortalView({
   asistencia,
   finanzas,
   circulares,
+  conducta,
 }: {
   esTutor: boolean;
   nombreUsuario: string;
@@ -50,6 +56,7 @@ export function PortalView({
   asistencia: PortalAsistencia;
   finanzas: PortalCargo[];
   circulares: CircularVisible[];
+  conducta: ConductaPortal[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -115,7 +122,7 @@ export function PortalView({
       </Card>
 
       <Tabs defaultValue="academico">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="academico" className="gap-1.5">
             <GraduationCap className="h-4 w-4" />
             <span className="hidden sm:inline">Académico</span>
@@ -123,6 +130,10 @@ export function PortalView({
           <TabsTrigger value="asistencia" className="gap-1.5">
             <ClipboardCheck className="h-4 w-4" />
             <span className="hidden sm:inline">Asistencia</span>
+          </TabsTrigger>
+          <TabsTrigger value="conducta" className="gap-1.5">
+            <Sparkles className="h-4 w-4" />
+            <span className="hidden sm:inline">Conducta</span>
           </TabsTrigger>
           <TabsTrigger value="finanzas" className="gap-1.5">
             <Wallet className="h-4 w-4" />
@@ -188,6 +199,87 @@ export function PortalView({
               <AsisStat label="Sesiones" value={asistencia.total} />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ── Conducta (méritos/deméritos) ── */}
+        <TabsContent value="conducta" className="mt-3 space-y-3">
+          {(() => {
+            const puntos = conducta.reduce((s, c) => s + c.puntos, 0);
+            const meritos = conducta.filter((c) => c.categoria === "merito").length;
+            const demeritos = conducta.length - meritos;
+            return (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center justify-between text-base">
+                    Conducta
+                    <span
+                      className={
+                        "font-serif text-xl " +
+                        (puntos >= 0 ? "text-success" : "text-destructive")
+                      }
+                    >
+                      {puntos > 0 ? `+${puntos}` : puntos} pts
+                    </span>
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    {meritos} mérito(s) · {demeritos} demérito(s)
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {conducta.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-muted-foreground">
+                      Sin incidencias registradas. ¡Buen trabajo!
+                    </p>
+                  ) : (
+                    conducta.map((c, i) => (
+                      <div
+                        key={i}
+                        className="flex items-start gap-3 rounded-lg border border-border p-3"
+                      >
+                        <div
+                          className={
+                            "mt-0.5 rounded-full p-1.5 " +
+                            (c.categoria === "merito"
+                              ? "bg-success/10 text-success"
+                              : "bg-destructive/10 text-destructive")
+                          }
+                        >
+                          {c.categoria === "merito" ? (
+                            <Award className="h-4 w-4" />
+                          ) : (
+                            <ThumbsDown className="h-4 w-4" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="truncate text-sm font-medium">{c.titulo}</p>
+                            <span
+                              className={
+                                "shrink-0 text-sm font-semibold tabular-nums " +
+                                (c.puntos >= 0 ? "text-success" : "text-destructive")
+                              }
+                            >
+                              {c.puntos > 0 ? `+${c.puntos}` : c.puntos}
+                            </span>
+                          </div>
+                          {c.descripcion && (
+                            <p className="text-xs text-muted-foreground">
+                              {c.descripcion}
+                            </p>
+                          )}
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {formatFechaRD(new Date(c.fecha))}
+                            {c.gravedad ? ` · ${GRAVEDAD_LABELS[c.gravedad]}` : ""}
+                            {c.medida ? ` · ${c.medida}` : ""}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })()}
         </TabsContent>
 
         {/* ── Finanzas (siempre visible) ── */}
