@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { requireActiveUser } from "@/lib/auth/require";
 import { DashboardContent } from "./dashboard-content";
+import { WelcomeCurtain } from "@/components/brand/welcome-curtain";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { ROLE_SHORT } from "@/lib/types";
@@ -21,6 +22,7 @@ export default async function DashboardPage() {
 
   return (
     <div>
+      <WelcomeCurtain nombre={profile.nombre_completo} />
       <PageHeader
         title={`${saludo()}, ${primerNombre}`}
         description={`${COLEGIO.nombre} · Accesos de tu rol`}

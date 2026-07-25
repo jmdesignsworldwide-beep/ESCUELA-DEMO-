@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, UserRound } from "lucide-react";
+import { LogOut } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,11 +34,6 @@ export function UserMenu({ profile }: { profile: Profile }) {
             {ROLE_LABELS[profile.role]}
           </span>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem disabled>
-          <UserRound className="h-4 w-4" />
-          Mi perfil
-        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <form action={logoutAction}>
           <button type="submit" className="w-full">
