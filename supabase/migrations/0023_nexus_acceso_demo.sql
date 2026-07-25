@@ -18,11 +18,30 @@ create table if not exists public.super_admins (
 );
 alter table public.super_admins enable row level security;
 alter table public.super_admins force row level security;
--- Solo un super-admin puede ver la tabla; nadie la escribe por API.
+-- Cada quien solo puede ver SU propia fila (no recursivo). Un no-super no ve
+-- ninguna; nadie la escribe por API. es_superadmin() (DEFINER) es la fuente
+-- de verdad para el resto de políticas.
 drop policy if exists super_admins_select on public.super_admins;
 create policy super_admins_select on public.super_admins
   for select to authenticated
-  using (exists (select 1 from public.super_admins sa where sa.profile_id = (select auth.uid())));
+  using (profile_id = (select auth.uid()));
+
+-- ── ¿El usuario actual es super-admin? (requerido por las políticas) ───
+create or replace function private.es_superadmin()
+returns boolean
+language sql stable security definer set search_path = ''
+as $$
+  select exists (select 1 from public.super_admins where profile_id = (select auth.uid()));
+$$;
+revoke all on function private.es_superadmin() from public, anon;
+grant execute on function private.es_superadmin() to authenticated, service_role;
+
+create or replace function public.es_superadmin()
+returns boolean
+language sql stable security invoker set search_path = ''
+as $$ select private.es_superadmin(); $$;
+revoke all on function public.es_superadmin() from public, anon;
+grant execute on function public.es_superadmin() to authenticated, service_role;
 
 -- ── Cuentas de acceso demo (con vigencia) ──────────────────────────────
 create table if not exists public.accesos_demo (
@@ -50,23 +69,6 @@ create policy accesos_demo_super on public.accesos_demo
   for all to authenticated
   using (private.es_superadmin())
   with check (private.es_superadmin());
-
--- ── ¿El usuario actual es super-admin? ─────────────────────────────────
-create or replace function private.es_superadmin()
-returns boolean
-language sql stable security definer set search_path = ''
-as $$
-  select exists (select 1 from public.super_admins where profile_id = (select auth.uid()));
-$$;
-revoke all on function private.es_superadmin() from public, anon;
-grant execute on function private.es_superadmin() to authenticated, service_role;
-
-create or replace function public.es_superadmin()
-returns boolean
-language sql stable security invoker set search_path = ''
-as $$ select private.es_superadmin(); $$;
-revoke all on function public.es_superadmin() from public, anon;
-grant execute on function public.es_superadmin() to authenticated, service_role;
 
 -- ── Estado del acceso demo del usuario actual (gate + aviso) ───────────
 create or replace function private.mi_acceso_demo()
