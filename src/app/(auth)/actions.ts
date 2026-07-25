@@ -33,11 +33,16 @@ export async function loginAction(
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
-  const rl = checkRateLimit(`login:${clientIp()}`, 8, 5 * 60_000);
-  if (!rl.ok) {
-    return {
-      error: `Demasiados intentos. Espera ${rl.retryAfterSec} segundos.`,
-    };
+  // Throttle por IP Y por correo. En un proxy (p. ej. Vercel) Supabase ve la
+  // IP del edge, no la del atacante; el límite por correo frena la fuerza
+  // bruta contra una cuenta concreta aunque el atacante rote de IP. El
+  // backstop definitivo es el rate-limit propio de Supabase Auth.
+  const emailKey = parsed.data.email.toLowerCase();
+  const rlIp = checkRateLimit(`login:ip:${clientIp()}`, 12, 5 * 60_000);
+  const rlUser = checkRateLimit(`login:user:${emailKey}`, 6, 10 * 60_000);
+  if (!rlIp.ok || !rlUser.ok) {
+    const wait = Math.max(rlIp.retryAfterSec, rlUser.retryAfterSec);
+    return { error: `Demasiados intentos. Espera ${wait} segundos.` };
   }
 
   const supabase = createClient();
