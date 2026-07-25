@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { Menu, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
+import { Menu, PanelLeftClose, PanelLeftOpen, X, ShieldHalf } from "lucide-react";
 import { SidebarNav } from "@/components/shell/sidebar-nav";
 import { Breadcrumbs } from "@/components/shell/breadcrumbs";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
@@ -16,9 +17,11 @@ import type { Profile } from "@/lib/types";
 
 export function AppShell({
   profile,
+  superAdmin = false,
   children,
 }: {
   profile: Profile;
+  superAdmin?: boolean;
   children: React.ReactNode;
 }) {
   const [collapsed, setCollapsed] = React.useState(false);
@@ -125,6 +128,19 @@ export function AppShell({
           <div className="flex-1 md:hidden" />
 
           <div className="flex items-center gap-1.5 sm:gap-2">
+            {superAdmin && (
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="gap-1.5 border-primary/40 text-primary"
+              >
+                <Link href="/nexus">
+                  <ShieldHalf className="h-4 w-4" />
+                  <span className="hidden sm:inline">JM Nexus</span>
+                </Link>
+              </Button>
+            )}
             <YearSelector />
             <ThemeToggle />
             <UserMenu profile={profile} />

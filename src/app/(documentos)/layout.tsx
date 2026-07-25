@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { requireActiveUser } from "@/lib/auth/require";
+import { gateAccesoDemo } from "@/lib/nexus/guard";
 import { PrintButton } from "@/components/docs/print-button";
 
 export default async function DocumentosLayout({
@@ -10,6 +11,7 @@ export default async function DocumentosLayout({
   children: ReactNode;
 }) {
   await requireActiveUser();
+  await gateAccesoDemo();
 
   return (
     <div className="min-h-dvh bg-muted/40 print:bg-white">
