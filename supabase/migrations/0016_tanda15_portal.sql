@@ -33,7 +33,10 @@ revoke all on function private.mis_estudiantes() from public, anon;
 grant execute on function private.mis_estudiantes() to authenticated, service_role;
 
 -- ── Portal: listado de "mis estudiantes" con saldo y bandera de bloqueo ─
-create or replace function public.portal_estudiantes()
+-- Patrón Fort Knox: la lógica privilegiada vive en `private` (DEFINER, no
+-- expuesta por PostgREST); el envoltorio `public` es INVOKER y solo reenvía,
+-- de modo que el Security Advisor no marca SECURITY DEFINER expuesto.
+create or replace function private.portal_estudiantes()
 returns table (
   estudiante_id uuid, nombres text, apellidos text, codigo text,
   seccion text, nivel text, pendiente numeric, bloqueado boolean)
@@ -59,11 +62,23 @@ as $$
   where e.id in (select private.mis_estudiantes())
   order by e.apellidos, e.nombres;
 $$;
+revoke all on function private.portal_estudiantes() from public, anon;
+grant execute on function private.portal_estudiantes() to authenticated, service_role;
+
+create or replace function public.portal_estudiantes()
+returns table (
+  estudiante_id uuid, nombres text, apellidos text, codigo text,
+  seccion text, nivel text, pendiente numeric, bloqueado boolean)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$ select * from private.portal_estudiantes(); $$;
 revoke all on function public.portal_estudiantes() from public, anon;
 grant execute on function public.portal_estudiantes() to authenticated, service_role;
 
 -- ── Portal: calificaciones (GATED por morosidad) ───────────────────────
-create or replace function public.portal_calificaciones(p_est uuid)
+create or replace function private.portal_calificaciones(p_est uuid)
 returns table (asignatura text, promedio numeric)
 language plpgsql
 stable
@@ -94,11 +109,21 @@ begin
     order by a.nombre;
 end;
 $$;
+revoke all on function private.portal_calificaciones(uuid) from public, anon;
+grant execute on function private.portal_calificaciones(uuid) to authenticated, service_role;
+
+create or replace function public.portal_calificaciones(p_est uuid)
+returns table (asignatura text, promedio numeric)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$ select * from private.portal_calificaciones(p_est); $$;
 revoke all on function public.portal_calificaciones(uuid) from public, anon;
 grant execute on function public.portal_calificaciones(uuid) to authenticated, service_role;
 
 -- ── Portal: resumen de asistencia (informativo, no se bloquea) ─────────
-create or replace function public.portal_asistencia(p_est uuid)
+create or replace function private.portal_asistencia(p_est uuid)
 returns table (presente bigint, ausente bigint, tardanza bigint,
   excusa bigint, retiro bigint, total bigint)
 language plpgsql
@@ -122,11 +147,22 @@ begin
     where r.estudiante_id = p_est;
 end;
 $$;
+revoke all on function private.portal_asistencia(uuid) from public, anon;
+grant execute on function private.portal_asistencia(uuid) to authenticated, service_role;
+
+create or replace function public.portal_asistencia(p_est uuid)
+returns table (presente bigint, ausente bigint, tardanza bigint,
+  excusa bigint, retiro bigint, total bigint)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$ select * from private.portal_asistencia(p_est); $$;
 revoke all on function public.portal_asistencia(uuid) from public, anon;
 grant execute on function public.portal_asistencia(uuid) to authenticated, service_role;
 
 -- ── Portal: estado financiero (siempre visible: deben poder pagar) ─────
-create or replace function public.portal_finanzas(p_est uuid)
+create or replace function private.portal_finanzas(p_est uuid)
 returns table (
   concepto text, monto numeric, vencimiento date, estado text, vencido boolean)
 language plpgsql
@@ -147,6 +183,17 @@ begin
     order by c.vencimiento nulls last;
 end;
 $$;
+revoke all on function private.portal_finanzas(uuid) from public, anon;
+grant execute on function private.portal_finanzas(uuid) to authenticated, service_role;
+
+create or replace function public.portal_finanzas(p_est uuid)
+returns table (
+  concepto text, monto numeric, vencimiento date, estado text, vencido boolean)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$ select * from private.portal_finanzas(p_est); $$;
 revoke all on function public.portal_finanzas(uuid) from public, anon;
 grant execute on function public.portal_finanzas(uuid) to authenticated, service_role;
 
@@ -164,7 +211,9 @@ declare
   v_uid_est uuid;
   v_instance uuid;
 begin
-  -- Familia morosa con tutor principal y al menos un estudiante activo.
+  -- Familia morosa con tutor principal, estudiantes activos Y con
+  -- calificaciones (para que el portal demuestre datos reales y el bloqueo).
+  -- Se prefiere la familia con más hijos activos (demuestra el selector).
   select f.id into v_fam
   from public.familias f
   where exists (
@@ -172,15 +221,20 @@ begin
       join public.estudiante_tutores et on et.estudiante_id = e.id
       where e.familia_id = f.id and e.estado = 'activo')
     and exists (
+      select 1 from public.estudiantes e
+      join public.calificacion_componentes cc on cc.estudiante_id = e.id
+      where e.familia_id = f.id)
+    and exists (
       select 1 from public.cargos c
       join public.estudiantes e on e.id = c.estudiante_id
       where e.familia_id = f.id and c.estado in ('pendiente', 'parcial')
         and c.vencimiento is not null and c.vencimiento < current_date)
-  order by (
-    select max(current_date - c.vencimiento)
-    from public.cargos c join public.estudiantes e on e.id = c.estudiante_id
-    where e.familia_id = f.id and c.vencimiento is not null
-  ) desc nulls last
+  order by
+    (select count(*) from public.estudiantes e
+      where e.familia_id = f.id and e.estado = 'activo') desc,
+    (select max(current_date - c.vencimiento)
+      from public.cargos c join public.estudiantes e on e.id = c.estudiante_id
+      where e.familia_id = f.id and c.vencimiento is not null) desc nulls last
   limit 1;
 
   if v_fam is null then return; end if;
@@ -218,10 +272,10 @@ begin
       '{"provider":"email","providers":["email"]}'::jsonb,
       '{"nombre_completo":"Madre/Padre Demo"}'::jsonb);
     insert into auth.identities (
-      provider_id, user_id, identity_data, provider, last_sign_in_at,
-      created_at, updated_at)
+      id, provider_id, user_id, identity_data, provider,
+      last_sign_in_at, created_at, updated_at)
     values (
-      v_uid_tutor::text, v_uid_tutor,
+      gen_random_uuid(), v_uid_tutor::text, v_uid_tutor,
       jsonb_build_object('sub', v_uid_tutor::text, 'email', 'familia.demo@jmescolar.do'),
       'email', now(), now(), now());
   end if;
@@ -229,6 +283,9 @@ begin
   update public.profiles
     set role = 'tutor', status = 'activo', nombre_completo = 'Madre/Padre Demo'
     where id = v_uid_tutor;
+  -- Idempotente: limpiar cualquier vínculo previo para no romper el
+  -- aislamiento hermético al reaplicar la migración.
+  update public.tutores set profile_id = null where profile_id = v_uid_tutor;
   if v_tutor is not null then
     update public.tutores set profile_id = v_uid_tutor where id = v_tutor;
   end if;
@@ -249,10 +306,10 @@ begin
       '{"provider":"email","providers":["email"]}'::jsonb,
       '{"nombre_completo":"Estudiante Demo"}'::jsonb);
     insert into auth.identities (
-      provider_id, user_id, identity_data, provider, last_sign_in_at,
-      created_at, updated_at)
+      id, provider_id, user_id, identity_data, provider,
+      last_sign_in_at, created_at, updated_at)
     values (
-      v_uid_est::text, v_uid_est,
+      gen_random_uuid(), v_uid_est::text, v_uid_est,
       jsonb_build_object('sub', v_uid_est::text, 'email', 'estudiante.demo@jmescolar.do'),
       'email', now(), now(), now());
   end if;
@@ -260,6 +317,7 @@ begin
   update public.profiles
     set role = 'estudiante', status = 'activo', nombre_completo = 'Estudiante Demo'
     where id = v_uid_est;
+  update public.estudiantes set profile_id = null where profile_id = v_uid_est;
   if v_est is not null then
     update public.estudiantes set profile_id = v_uid_est where id = v_est;
   end if;
