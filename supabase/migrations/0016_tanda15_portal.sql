@@ -263,14 +263,16 @@ begin
     insert into auth.users (
       instance_id, id, aud, role, email, encrypted_password,
       email_confirmed_at, created_at, updated_at,
-      raw_app_meta_data, raw_user_meta_data)
+      raw_app_meta_data, raw_user_meta_data,
+      confirmation_token, recovery_token, email_change_token_new, email_change)
     values (
       v_instance, v_uid_tutor, 'authenticated', 'authenticated',
       'familia.demo@jmescolar.do',
       extensions.crypt('PortalFamilia2026', extensions.gen_salt('bf')),
       now(), now(), now(),
       '{"provider":"email","providers":["email"]}'::jsonb,
-      '{"nombre_completo":"Madre/Padre Demo"}'::jsonb);
+      '{"nombre_completo":"Madre/Padre Demo"}'::jsonb,
+      '', '', '', '');
     insert into auth.identities (
       id, provider_id, user_id, identity_data, provider,
       last_sign_in_at, created_at, updated_at)
@@ -297,14 +299,16 @@ begin
     insert into auth.users (
       instance_id, id, aud, role, email, encrypted_password,
       email_confirmed_at, created_at, updated_at,
-      raw_app_meta_data, raw_user_meta_data)
+      raw_app_meta_data, raw_user_meta_data,
+      confirmation_token, recovery_token, email_change_token_new, email_change)
     values (
       v_instance, v_uid_est, 'authenticated', 'authenticated',
       'estudiante.demo@jmescolar.do',
       extensions.crypt('PortalEstudiante2026', extensions.gen_salt('bf')),
       now(), now(), now(),
       '{"provider":"email","providers":["email"]}'::jsonb,
-      '{"nombre_completo":"Estudiante Demo"}'::jsonb);
+      '{"nombre_completo":"Estudiante Demo"}'::jsonb,
+      '', '', '', '');
     insert into auth.identities (
       id, provider_id, user_id, identity_data, provider,
       last_sign_in_at, created_at, updated_at)
