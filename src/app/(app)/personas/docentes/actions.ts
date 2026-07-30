@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/auth/require";
 import { getSedeActiva, getAnioActivo } from "@/lib/academic/queries";
 import {
   empleadoSchema,
+  editarEmpleadoSchema,
   asignacionSchema,
   estadoEmpleadoSchema,
 } from "@/lib/validation/empleado";
@@ -55,6 +56,7 @@ export async function crearEmpleadoAction(
     direccion: formData.get("direccion"),
     fecha_ingreso: formData.get("fecha_ingreso"),
     titulo_academico: formData.get("titulo_academico"),
+    fecha_nacimiento: formData.get("fecha_nacimiento"),
   });
   if (!parsed.success) {
     return { fieldErrors: parsed.error.flatten().fieldErrors };
@@ -80,6 +82,7 @@ export async function crearEmpleadoAction(
     direccion: d.direccion || null,
     fecha_ingreso: d.fecha_ingreso || null,
     titulo_academico: d.titulo_academico || null,
+    fecha_nacimiento: d.fecha_nacimiento || null,
     estado: "activo",
   });
 
@@ -93,6 +96,57 @@ export async function crearEmpleadoAction(
   }
 
   revalidatePath("/personas/docentes");
+  return { ok: true };
+}
+
+/** Editar los datos de un empleado (CRUD completo). */
+export async function editarEmpleadoAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireRole(["director", "secretaria"], { redirectOnFail: false });
+
+  const parsed = editarEmpleadoSchema.safeParse({
+    empleado_id: formData.get("empleado_id"),
+    nombres: formData.get("nombres"),
+    apellidos: formData.get("apellidos"),
+    cedula: formData.get("cedula"),
+    tipo: formData.get("tipo"),
+    cargo: formData.get("cargo"),
+    telefono: formData.get("telefono"),
+    email: formData.get("email"),
+    direccion: formData.get("direccion"),
+    fecha_ingreso: formData.get("fecha_ingreso"),
+    titulo_academico: formData.get("titulo_academico"),
+    fecha_nacimiento: formData.get("fecha_nacimiento"),
+  });
+  if (!parsed.success) {
+    return { fieldErrors: parsed.error.flatten().fieldErrors };
+  }
+  const d = parsed.data;
+
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("empleados")
+    .update({
+      nombres: d.nombres,
+      apellidos: d.apellidos,
+      cedula: d.cedula || null,
+      tipo: d.tipo,
+      cargo: d.cargo,
+      telefono: d.telefono || null,
+      email: d.email || null,
+      direccion: d.direccion || null,
+      fecha_ingreso: d.fecha_ingreso || null,
+      titulo_academico: d.titulo_academico || null,
+      fecha_nacimiento: d.fecha_nacimiento || null,
+    })
+    .eq("id", d.empleado_id);
+
+  if (error) return { error: "No se pudieron guardar los cambios." };
+
+  revalidatePath("/personas/docentes");
+  revalidatePath(`/personas/docentes/${d.empleado_id}`);
   return { ok: true };
 }
 

@@ -10,6 +10,8 @@ import { COLEGIO } from "@/lib/constants";
 import { getAnioActivo } from "@/lib/academic/queries";
 import { getTableroKpis, type TableroKpis } from "@/lib/dashboard/tablero";
 import { getDashKpis, type DashKpis } from "@/lib/reports/queries";
+import { CumpleanosWidget } from "./cumpleanos-widget";
+import { getProximosCumpleanos, type Cumpleanos } from "@/lib/dashboard/cumpleanos";
 
 export const metadata: Metadata = { title: "Panel" };
 export const dynamic = "force-dynamic";
@@ -33,14 +35,17 @@ export default async function DashboardPage() {
 
   let tablero: TableroKpis | null = null;
   let financiero: DashKpis | null = null;
+  let cumpleanos: Cumpleanos[] = [];
   if (verTablero || verFinanciero) {
     const anio = await getAnioActivo();
-    const [t, f] = await Promise.all([
+    const [t, f, c] = await Promise.all([
       verTablero && anio ? getTableroKpis(anio.id) : Promise.resolve(null),
       verFinanciero ? getDashKpis() : Promise.resolve(null),
+      verTablero ? getProximosCumpleanos(15) : Promise.resolve([]),
     ]);
     tablero = t;
     financiero = f;
+    cumpleanos = c;
   }
 
   return (
@@ -52,6 +57,7 @@ export default async function DashboardPage() {
         actions={<Badge variant="gold">{ROLE_SHORT[profile.role]}</Badge>}
       />
       <ModuloDashboards tablero={tablero} financiero={financiero} />
+      <CumpleanosWidget items={cumpleanos} />
       <DashboardContent role={profile.role} />
     </div>
   );

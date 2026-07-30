@@ -63,6 +63,9 @@ export function NuevoEmpleadoDialog() {
             <Field label="Fecha de ingreso" error={err("fecha_ingreso")}>
               <Input name="fecha_ingreso" type="date" />
             </Field>
+            <Field label="Fecha de nacimiento" error={err("fecha_nacimiento")}>
+              <Input name="fecha_nacimiento" type="date" />
+            </Field>
             <Field label="Título académico" error={err("titulo_academico")}>
               <Input name="titulo_academico" placeholder="Licenciatura en Educación" />
             </Field>

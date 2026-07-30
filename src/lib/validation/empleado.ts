@@ -33,8 +33,17 @@ export const empleadoSchema = z.object({
     .optional()
     .or(z.literal("")),
   titulo_academico: z.string().trim().max(160).optional().or(z.literal("")),
+  fecha_nacimiento: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha no válida.")
+    .optional()
+    .or(z.literal("")),
 });
 export type EmpleadoInput = z.infer<typeof empleadoSchema>;
+
+export const editarEmpleadoSchema = empleadoSchema.extend({
+  empleado_id: uuid,
+});
 
 export const asignacionSchema = z.object({
   empleado_id: uuid,

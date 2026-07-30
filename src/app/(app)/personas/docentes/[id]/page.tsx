@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { EstadoEmpleadoSelector } from "./estado-empleado-selector";
+import { EditarEmpleadoDialog } from "./editar-empleado-dialog";
 import { AsignacionesManager, type AsignacionRow } from "./asignaciones-manager";
 import {
   getSedeActiva,
@@ -153,10 +154,28 @@ export default async function ExpedienteEmpleadoPage({
             </div>
           </div>
           {canWrite && (
-            <EstadoEmpleadoSelector
-              empleadoId={empleado.id}
-              estadoActual={empleado.estado}
-            />
+            <div className="flex flex-col items-stretch gap-2 sm:items-end">
+              <EditarEmpleadoDialog
+                empleado={{
+                  id: empleado.id,
+                  nombres: empleado.nombres,
+                  apellidos: empleado.apellidos,
+                  tipo: empleado.tipo,
+                  cargo: empleado.cargo,
+                  cedula: empleado.cedula,
+                  telefono: empleado.telefono,
+                  email: empleado.email,
+                  direccion: empleado.direccion,
+                  fecha_ingreso: empleado.fecha_ingreso,
+                  fecha_nacimiento: empleado.fecha_nacimiento,
+                  titulo_academico: empleado.titulo_academico,
+                }}
+              />
+              <EstadoEmpleadoSelector
+                empleadoId={empleado.id}
+                estadoActual={empleado.estado}
+              />
+            </div>
           )}
         </CardContent>
       </Card>

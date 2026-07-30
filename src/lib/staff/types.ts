@@ -30,6 +30,7 @@ export interface Empleado {
   email: string | null;
   direccion: string | null;
   fecha_ingreso: string | null;
+  fecha_nacimiento: string | null;
   titulo_academico: string | null;
   foto_path: string | null;
   estado: EstadoEmpleado;
