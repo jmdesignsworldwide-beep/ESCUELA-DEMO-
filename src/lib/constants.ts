@@ -5,6 +5,8 @@ import {
   ClipboardCheck,
   CalendarDays,
   BookOpenCheck,
+  Target,
+  Award,
   Baby,
   FileText,
   RefreshCcw,
@@ -92,6 +94,18 @@ export const NAV_GROUPS: NavGroup[] = [
         href: "/academico/calificaciones",
         icon: BookOpenCheck,
         roles: ["director", "coordinador", "docente"],
+      },
+      {
+        label: "Competencias",
+        href: "/academico/competencias",
+        icon: Target,
+        roles: ["director", "coordinador", "docente"],
+      },
+      {
+        label: "Boletín por competencias",
+        href: "/academico/boletin-competencias",
+        icon: Award,
+        roles: ["director", "coordinador", "secretaria", "docente"],
       },
       {
         label: "Nivel Inicial",
