@@ -41,5 +41,12 @@ export type EstudianteInput = z.infer<typeof estudianteSchema>;
 
 export const cambiarEstadoSchema = z.object({
   estudiante_id: uuid,
-  estado: z.enum(["activo", "retirado", "egresado", "transferido"]),
+  estado: z.enum([
+    "activo",
+    "inactivo",
+    "retirado",
+    "egresado",
+    "transferido",
+  ]),
+  motivo: z.string().trim().max(500).optional(),
 });

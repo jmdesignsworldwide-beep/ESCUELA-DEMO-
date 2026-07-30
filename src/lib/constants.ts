@@ -9,6 +9,7 @@ import {
   Award,
   ClipboardList,
   CalendarCheck,
+  ArrowLeftRight,
   Baby,
   FileText,
   RefreshCcw,
@@ -189,6 +190,12 @@ export const NAV_GROUPS: NavGroup[] = [
         label: "Docentes y personal",
         href: "/personas/docentes",
         icon: UserCog,
+        roles: ["director", "coordinador", "secretaria"],
+      },
+      {
+        label: "Ciclo de vida",
+        href: "/personas/ciclo-vida",
+        icon: ArrowLeftRight,
         roles: ["director", "coordinador", "secretaria"],
       },
       {

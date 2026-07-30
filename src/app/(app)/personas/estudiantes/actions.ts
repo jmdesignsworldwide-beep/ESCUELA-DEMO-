@@ -115,30 +115,41 @@ export async function crearEstudianteAction(
   return { ok: true };
 }
 
-/** Cambiar el estado de un estudiante (activo/retirado/egresado/transferido). */
+/**
+ * Cambiar el estado de un estudiante (ciclo de vida). Atómico vía RPC:
+ * actualiza estado + matrícula + registra el movimiento; el motivo es
+ * obligatorio para retiro/inactivación/egreso/transferencia.
+ */
 export async function cambiarEstadoAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  await requireRole(["director", "secretaria"], { redirectOnFail: false });
+  await requireRole(["director", "coordinador", "secretaria"], {
+    redirectOnFail: false,
+  });
 
   const parsed = cambiarEstadoSchema.safeParse({
     estudiante_id: formData.get("estudiante_id"),
     estado: formData.get("estado"),
+    motivo: formData.get("motivo") ?? undefined,
   });
   if (!parsed.success) {
     return { error: "Datos no válidos." };
   }
 
   const supabase = createClient();
-  const { error } = await supabase
-    .from("estudiantes")
-    .update({ estado: parsed.data.estado })
-    .eq("id", parsed.data.estudiante_id);
+  const { error } = await supabase.rpc("cambiar_estado_estudiante", {
+    p_est: parsed.data.estudiante_id,
+    p_estado: parsed.data.estado,
+    p_motivo: parsed.data.motivo ?? "",
+  });
 
-  if (error) return { error: "No se pudo actualizar el estado." };
+  if (error) {
+    return { error: error.message || "No se pudo actualizar el estado." };
+  }
 
   revalidatePath("/personas/estudiantes");
+  revalidatePath("/personas/ciclo-vida");
   revalidatePath(`/personas/estudiantes/${parsed.data.estudiante_id}`);
   return { ok: true };
 }
