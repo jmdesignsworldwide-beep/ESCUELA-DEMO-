@@ -9,7 +9,9 @@ import {
   getCargosSaldo,
   getPagosDelDia,
   getCierre,
+  getEstadoSecuenciasNcf,
 } from "@/lib/cashier/queries";
+import { SecuenciasNcfCard } from "./secuencias-ncf-card";
 
 export const metadata: Metadata = { title: "Caja y cobros" };
 
@@ -40,10 +42,11 @@ export default async function CajaPage({
   }
 
   const fecha = searchParams.fecha ?? hoyISO();
-  const [estudiantes, pagosDia, cierre] = await Promise.all([
+  const [estudiantes, pagosDia, cierre, secuencias] = await Promise.all([
     getEstudiantes(sede.id),
     getPagosDelDia(fecha),
     getCierre(fecha),
+    getEstadoSecuenciasNcf(),
   ]);
 
   const nombreEst = new Map(
@@ -58,7 +61,7 @@ export default async function CajaPage({
     <div>
       <PageHeader
         title="Caja y cobros"
-        description={`${sede.nombre} · Recibos con NCF simulado`}
+        description={`${sede.nombre} · Recibos con NCF / e-CF`}
       />
       <CajaView
         canWrite={canWrite}
@@ -82,6 +85,7 @@ export default async function CajaPage({
         }))}
         cierre={cierre}
       />
+      <SecuenciasNcfCard secuencias={secuencias} />
     </div>
   );
 }

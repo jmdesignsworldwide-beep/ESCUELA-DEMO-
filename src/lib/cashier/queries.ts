@@ -82,3 +82,45 @@ export async function getCierre(fecha: string): Promise<CierreCaja | null> {
     .maybeSingle<CierreCaja>();
   return data ?? null;
 }
+
+export interface ComprobanteSecuencia {
+  tipo: string;
+  descripcion: string;
+  vencimiento: string;
+  electronico: boolean;
+}
+
+export async function getComprobanteSecuencia(
+  ncf: string,
+): Promise<ComprobanteSecuencia | null> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .rpc("comprobante_secuencia", { p_ncf: ncf })
+    .maybeSingle<ComprobanteSecuencia>();
+  return data ?? null;
+}
+
+export interface EstadoSecuenciaNcf {
+  tipo: string;
+  descripcion: string;
+  prefijo: string;
+  electronico: boolean;
+  desde: number;
+  hasta: number;
+  vencimiento: string;
+  usados: number;
+  disponibles: number;
+  vencida: boolean;
+}
+
+export async function getEstadoSecuenciasNcf(): Promise<EstadoSecuenciaNcf[]> {
+  const supabase = createClient();
+  const { data } = await supabase.rpc("estado_secuencias_ncf");
+  return ((data as EstadoSecuenciaNcf[]) ?? []).map((s) => ({
+    ...s,
+    desde: Number(s.desde),
+    hasta: Number(s.hasta),
+    usados: Number(s.usados),
+    disponibles: Number(s.disponibles),
+  }));
+}
