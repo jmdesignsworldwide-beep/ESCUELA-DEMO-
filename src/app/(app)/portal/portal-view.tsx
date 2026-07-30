@@ -36,6 +36,11 @@ import type { CircularVisible } from "@/lib/comms/types";
 import { TIPO_CIRCULAR_LABELS } from "@/lib/comms/types";
 import type { ConductaPortal } from "@/lib/discipline/types";
 import { GRAVEDAD_LABELS } from "@/lib/discipline/types";
+import {
+  MESES_ABREV,
+  type AsistenciaMes,
+  type AsistenciaPeriodo,
+} from "@/lib/attendance/analytics-types";
 
 export function PortalView({
   esTutor,
@@ -44,6 +49,10 @@ export function PortalView({
   seleccionado,
   calificaciones,
   asistencia,
+  asistenciaPct,
+  asistenciaMensual,
+  asistenciaPeriodo,
+  asistenciaMinima,
   finanzas,
   circulares,
   conducta,
@@ -54,6 +63,10 @@ export function PortalView({
   seleccionado: PortalEstudiante;
   calificaciones: PortalCalificacion[];
   asistencia: PortalAsistencia;
+  asistenciaPct: number;
+  asistenciaMensual: AsistenciaMes[];
+  asistenciaPeriodo: AsistenciaPeriodo[];
+  asistenciaMinima: number;
   finanzas: PortalCargo[];
   circulares: CircularVisible[];
   conducta: ConductaPortal[];
@@ -183,12 +196,118 @@ export function PortalView({
         </TabsContent>
 
         {/* ── Asistencia (informativa, no se bloquea) ── */}
-        <TabsContent value="asistencia" className="mt-3">
+        <TabsContent value="asistencia" className="mt-3 space-y-3">
+          {/* Semáforo anual */}
+          {(() => {
+            const enRegla = asistenciaPct >= asistenciaMinima;
+            return (
+              <Card
+                className={
+                  enRegla
+                    ? "border-success/40 bg-success/5"
+                    : "border-destructive/40 bg-destructive/5"
+                }
+              >
+                <CardContent className="flex items-center gap-4 py-5">
+                  <div
+                    className={
+                      "flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-xl font-bold text-white " +
+                      (enRegla ? "bg-success" : "bg-destructive")
+                    }
+                  >
+                    {asistenciaPct.toFixed(0)}%
+                  </div>
+                  <div>
+                    <p className="font-serif text-lg font-semibold">
+                      Asistencia del año
+                    </p>
+                    <p
+                      className={
+                        "text-sm font-medium " +
+                        (enRegla ? "text-success" : "text-destructive")
+                      }
+                    >
+                      {enRegla
+                        ? "En regla — por encima del mínimo"
+                        : `Atención — por debajo del ${asistenciaMinima}% requerido`}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
+
+          {/* Por período */}
+          {asistenciaPeriodo.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Por período</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {asistenciaPeriodo.map((p) => {
+                  const ok = p.pct >= asistenciaMinima;
+                  return (
+                    <div
+                      key={p.orden}
+                      className="rounded-lg border border-border p-2 text-center"
+                    >
+                      <p className="text-xs text-muted-foreground">
+                        {p.orden}º período
+                      </p>
+                      <p
+                        className={
+                          "font-serif text-lg font-semibold " +
+                          (ok ? "text-success" : "text-destructive")
+                        }
+                      >
+                        {p.pct.toFixed(0)}%
+                      </p>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Por mes */}
+          {asistenciaMensual.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Asistencia mensual</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {asistenciaMensual.map((m) => {
+                  const ok = m.pct >= asistenciaMinima;
+                  return (
+                    <div key={`${m.anio_cal}-${m.mes}`} className="flex items-center gap-3">
+                      <span className="w-10 shrink-0 text-xs font-medium text-muted-foreground">
+                        {MESES_ABREV[m.mes - 1]}
+                      </span>
+                      <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className={"h-full rounded-full " + (ok ? "bg-success" : "bg-destructive")}
+                          style={{ width: `${m.pct}%` }}
+                        />
+                      </div>
+                      <span
+                        className={
+                          "w-12 shrink-0 text-right text-xs font-semibold tabular-nums " +
+                          (ok ? "text-success" : "text-destructive")
+                        }
+                      >
+                        {m.pct.toFixed(0)}%
+                      </span>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Desglose */}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">
-                Resumen de asistencia
-              </CardTitle>
+              <CardTitle className="text-base">Desglose del año</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <AsisStat label="Presente" value={asistencia.presente} good />

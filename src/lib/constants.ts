@@ -8,6 +8,7 @@ import {
   Target,
   Award,
   ClipboardList,
+  CalendarCheck,
   Baby,
   FileText,
   RefreshCcw,
@@ -89,6 +90,12 @@ export const NAV_GROUPS: NavGroup[] = [
         href: "/academico/asistencia",
         icon: ClipboardCheck,
         roles: ["director", "coordinador", "docente"],
+      },
+      {
+        label: "Reportes de asistencia",
+        href: "/academico/asistencia-reportes",
+        icon: CalendarCheck,
+        roles: ["director", "coordinador", "secretaria"],
       },
       {
         label: "Calificaciones",
