@@ -56,6 +56,25 @@ export async function getResumenFamilias(): Promise<ResumenFamilia[]> {
     .sort((a, b) => b.pendiente - a.pendiente);
 }
 
+export async function getEstadoCuentaFamilias(): Promise<
+  import("@/lib/finance/types").EstadoCuentaFamilia[]
+> {
+  const supabase = createClient();
+  const { data } = await supabase.rpc("estado_cuenta_familias");
+  type Row = import("@/lib/finance/types").EstadoCuentaFamilia;
+  return ((data as Row[]) ?? []).map((f) => ({
+    familia_id: f.familia_id,
+    apellido: f.apellido,
+    estudiantes: Number(f.estudiantes),
+    total_neto: Number(f.total_neto),
+    total_descuento: Number(f.total_descuento),
+    pendiente: Number(f.pendiente),
+    vencido: Number(f.vencido),
+    dias_max: f.dias_max === null ? null : Number(f.dias_max),
+    tramo: f.tramo,
+  }));
+}
+
 export async function getCargosFamilia(familiaId: string): Promise<Cargo[]> {
   const supabase = createClient();
   const { data } = await supabase

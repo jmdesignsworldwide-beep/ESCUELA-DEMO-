@@ -94,3 +94,36 @@ export interface ResumenFamilia {
   total_neto: number;
   pendiente: number;
 }
+
+export type TramoMora = "al_dia" | "t_0_30" | "t_31_60" | "t_61_90" | "t_90mas";
+
+export const TRAMO_LABELS: Record<TramoMora, string> = {
+  al_dia: "Al día",
+  t_0_30: "1–30 días",
+  t_31_60: "31–60 días",
+  t_61_90: "61–90 días",
+  t_90mas: "+90 días",
+};
+
+export const TRAMO_VARIANT: Record<
+  TramoMora,
+  "success" | "secondary" | "warning" | "destructive"
+> = {
+  al_dia: "success",
+  t_0_30: "secondary",
+  t_31_60: "warning",
+  t_61_90: "warning",
+  t_90mas: "destructive",
+};
+
+export interface EstadoCuentaFamilia {
+  familia_id: string;
+  apellido: string;
+  estudiantes: number;
+  total_neto: number;
+  total_descuento: number;
+  pendiente: number;
+  vencido: number;
+  dias_max: number | null;
+  tramo: TramoMora;
+}

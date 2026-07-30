@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useFormState } from "react-dom";
 import { toast } from "sonner";
-import { Users, Percent, CalendarPlus, Wallet, ChevronRight } from "lucide-react";
+import { Users, Percent, CalendarPlus, Wallet, Search } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -43,11 +43,14 @@ import {
   MESES,
   TIPO_BECA_LABELS,
   ESTADO_CARGO_LABELS,
+  TRAMO_LABELS,
+  TRAMO_VARIANT,
   type ConfigFinanciera,
   type ConceptoCobro,
   type EstadoCargo,
-  type ResumenFamilia,
+  type EstadoCuentaFamilia,
   type TipoBeca,
+  type TramoMora,
 } from "@/lib/finance/types";
 
 interface BecaRow {
@@ -82,7 +85,7 @@ export function FacturacionView({
   config: ConfigFinanciera | null;
   conceptos: ConceptoCobro[];
   becas: BecaRow[];
-  familias: ResumenFamilia[];
+  familias: EstadoCuentaFamilia[];
   familiaSel: string;
   cargosFamilia: CargoRow[];
   estudiantes: { id: string; nombre: string }[];
@@ -116,17 +119,39 @@ export function FacturacionView({
   );
 }
 
+const TRAMOS: (TramoMora | "todos")[] = [
+  "todos",
+  "al_dia",
+  "t_0_30",
+  "t_31_60",
+  "t_61_90",
+  "t_90mas",
+];
+
 function EstadoCuenta({
   familias,
   familiaSel,
   cargos,
 }: {
-  familias: ResumenFamilia[];
+  familias: EstadoCuentaFamilia[];
   familiaSel: string;
   cargos: CargoRow[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const [q, setQ] = React.useState("");
+  const [tramo, setTramo] = React.useState<TramoMora | "todos">("todos");
+
+  const filtradas = React.useMemo(() => {
+    const query = q.trim().toLowerCase();
+    return familias.filter(
+      (f) =>
+        (tramo === "todos" || f.tramo === tramo) &&
+        (!query || f.apellido.toLowerCase().includes(query)),
+    );
+  }, [familias, q, tramo]);
+
+  const familiaActual = familias.find((f) => f.familia_id === familiaSel);
 
   const porEstudiante = new Map<string, CargoRow[]>();
   for (const c of cargos) {
@@ -141,51 +166,88 @@ function EstadoCuenta({
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_1.6fr]">
       <Card>
-        <CardHeader>
+        <CardHeader className="space-y-3">
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-primary" />
-            <CardTitle className="text-lg">Familias con saldo</CardTitle>
+            <CardTitle className="text-lg">Estado de cuenta por familia</CardTitle>
           </div>
-          <CardDescription>{familias.length} familias.</CardDescription>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Buscar familia por apellido…"
+              className="pl-9"
+            />
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {TRAMOS.map((t) => (
+              <button
+                key={t}
+                onClick={() => setTramo(t)}
+                className={
+                  "rounded-full border px-2.5 py-1 text-xs font-medium transition-colors " +
+                  (tramo === t
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:border-primary/40")
+                }
+              >
+                {t === "todos" ? "Todas" : TRAMO_LABELS[t]}
+              </button>
+            ))}
+          </div>
+          <CardDescription>{filtradas.length} familia(s).</CardDescription>
         </CardHeader>
-        <CardContent className="max-h-[28rem] space-y-1 overflow-y-auto">
-          {familias.map((f) => (
+        <CardContent className="max-h-[26rem] space-y-1 overflow-y-auto">
+          {filtradas.map((f) => (
             <button
               key={f.familia_id}
               onClick={() => router.replace(`${pathname}?familia=${f.familia_id}`)}
               className={
-                "flex w-full items-center justify-between rounded-lg border p-2.5 text-left transition-colors " +
+                "flex w-full items-center justify-between gap-2 rounded-lg border p-2.5 text-left transition-colors " +
                 (familiaSel === f.familia_id
                   ? "border-primary bg-primary/5"
                   : "border-border hover:border-primary/40")
               }
             >
-              <div>
-                <p className="text-sm font-medium">Familia {f.apellido}</p>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">Familia {f.apellido}</p>
                 <p className="text-xs text-muted-foreground">
                   {f.estudiantes} estudiante(s)
+                  {f.total_descuento > 0
+                    ? ` · desc. ${formatRD(f.total_descuento)}`
+                    : ""}
                 </p>
               </div>
-              <div className="text-right">
+              <div className="shrink-0 text-right">
                 <p className="text-sm font-semibold tabular-nums">
                   {formatRD(f.pendiente)}
                 </p>
-                <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" />
+                <Badge variant={TRAMO_VARIANT[f.tramo]} className="mt-0.5 text-[0.65rem]">
+                  {TRAMO_LABELS[f.tramo]}
+                </Badge>
               </div>
             </button>
           ))}
+          {filtradas.length === 0 && (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              Sin familias en este filtro.
+            </p>
+          )}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">
-            {familiaSel ? "Estado de cuenta consolidado" : "Selecciona una familia"}
+            {familiaActual
+              ? `Familia ${familiaActual.apellido}`
+              : "Selecciona una familia"}
           </CardTitle>
           {familiaSel && (
             <CardDescription>
-              Neto {formatRD(totalNeto)} · Descuentos {formatRD(totalDesc)} ·
-              Pendiente {formatRD(totalPend)}
+              Neto {formatRD(totalNeto)} · Descuentos (hermanos/becas){" "}
+              {formatRD(totalDesc)} · Pendiente {formatRD(totalPend)}
             </CardDescription>
           )}
         </CardHeader>

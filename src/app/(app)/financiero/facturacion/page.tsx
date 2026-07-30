@@ -9,7 +9,7 @@ import {
   getConfig,
   getConceptos,
   getBecas,
-  getResumenFamilias,
+  getEstadoCuentaFamilias,
   getCargosFamilia,
 } from "@/lib/finance/queries";
 
@@ -41,7 +41,7 @@ export default async function FacturacionPage({
     getConfig(sede.id),
     getConceptos(sede.id),
     getBecas(),
-    getResumenFamilias(),
+    getEstadoCuentaFamilias(),
     getEstudiantes(sede.id),
   ]);
 
