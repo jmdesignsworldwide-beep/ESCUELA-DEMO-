@@ -16,7 +16,8 @@ const schema = z.object({
   asignatura_id: z.string().uuid(),
   seccion_id: z.string().uuid(),
   instancia: z.enum(["completivo", "extraordinario", "especial"]),
-  nota: z.coerce.number().min(0, "Mínimo 0.").max(70, "Máximo 70 (tope de recuperación)."),
+  // El tope real (65/70) se valida contra la nota mínima del nivel más abajo.
+  nota: z.coerce.number().min(0, "Mínimo 0.").max(100, "Máximo 100."),
 });
 
 export async function guardarRecuperacionAction(
@@ -43,6 +44,19 @@ export async function guardarRecuperacionAction(
   if (!anio) return { error: "No hay año escolar activo." };
 
   const supabase = createClient();
+
+  // Tope de recuperación = nota mínima de aprobación del nivel (65/70): una
+  // recuperación sólo puede llevar al estudiante hasta el mínimo aprobatorio.
+  const { data: sec } = await supabase
+    .from("secciones")
+    .select("grados!inner(niveles!inner(min_aprobacion))")
+    .eq("id", parsed.data.seccion_id)
+    .maybeSingle<{ grados: { niveles: { min_aprobacion: number | null } } }>();
+  const cap = Number(sec?.grados?.niveles?.min_aprobacion ?? 70);
+  if (parsed.data.nota > cap) {
+    return { error: `La nota de recuperación no puede superar ${cap} (tope del nivel).` };
+  }
+
   const { error } = await supabase.from("recuperaciones").upsert(
     {
       estudiante_id: parsed.data.estudiante_id,

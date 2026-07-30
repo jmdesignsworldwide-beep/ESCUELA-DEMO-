@@ -17,9 +17,10 @@ import {
 } from "@/lib/academic/queries";
 import { getEstudiantesDeSeccion } from "@/lib/students/queries";
 import { getPromediosFinales, getRecuperaciones } from "@/lib/recovery/queries";
+import { getSituacionAcademica } from "@/lib/actas/queries";
+import { getNivelesNorma } from "@/lib/academic/normas";
+import type { SituacionAcademica } from "@/lib/actas/types";
 import {
-  NOTA_MINIMA,
-  estadoPromocion,
   siguienteInstancia,
   type InstanciaRecuperacion,
 } from "@/lib/recovery/types";
@@ -40,7 +41,7 @@ export interface EstudianteRecup {
   nombre: string;
   asignaturas: AsignaturaRecup[];
   reprobadas: number;
-  estado: "promovido" | "condicionado" | "repite";
+  situacion: SituacionAcademica;
 }
 
 export default async function RecuperacionPage({
@@ -60,15 +61,18 @@ export default async function RecuperacionPage({
     );
   }
 
-  const [niveles, grados, secciones, asignaturas, pensum] = await Promise.all([
-    getNiveles(sede.id),
-    getGrados(sede.id),
-    getSecciones(anio.id),
-    getAsignaturas(sede.id),
-    getPensumSede(sede.id),
-  ]);
+  const [niveles, grados, secciones, asignaturas, pensum, normas] =
+    await Promise.all([
+      getNiveles(sede.id),
+      getGrados(sede.id),
+      getSecciones(anio.id),
+      getAsignaturas(sede.id),
+      getPensumSede(sede.id),
+      getNivelesNorma(sede.id),
+    ]);
 
   const nivelPorId = new Map(niveles.map((n) => [n.id, n]));
+  const minPorNivel = new Map(normas.map((n) => [n.id, n.min_aprobacion]));
   const gradoPorId = new Map(grados.map((g) => [g.id, g]));
   const asignaturaPorId = new Map(asignaturas.map((a) => [a.id, a]));
 
@@ -87,6 +91,8 @@ export default async function RecuperacionPage({
   const seccionSel = searchParams.seccion ?? seccionesNum[0]?.id ?? "";
   const seccion = secciones.find((s) => s.id === seccionSel);
   const grado = seccion ? gradoPorId.get(seccion.grado_id) : undefined;
+  const nivel = grado ? nivelPorId.get(grado.nivel_id) : undefined;
+  const min = nivel ? (minPorNivel.get(nivel.id) ?? 70) : 70;
 
   const asignaturasGrado = grado
     ? pensum
@@ -95,13 +101,14 @@ export default async function RecuperacionPage({
         .filter((a): a is NonNullable<typeof a> => !!a)
     : [];
 
-  const [roster, promedios, recuperaciones] = seccionSel
+  const [roster, promedios, recuperaciones, situacion] = seccionSel
     ? await Promise.all([
         getEstudiantesDeSeccion(seccionSel, anio.id),
         getPromediosFinales(anio.id, seccionSel),
         getRecuperaciones(anio.id, seccionSel),
+        getSituacionAcademica(anio.id, seccionSel),
       ])
-    : [[], [], []];
+    : [[], [], [], []];
 
   const promedioDe = (est: string, asg: string): number | null => {
     const p = promedios.find(
@@ -130,20 +137,21 @@ export default async function RecuperacionPage({
         nombre: a.nombre,
         promedio: prom,
         final,
-        aprobada: final !== null && final >= NOTA_MINIMA,
+        aprobada: final !== null && final >= min,
         registradas: recs.length,
         siguiente: siguienteInstancia(recs.length),
       };
     });
     const reprobadas = asigs.filter(
-      (x) => x.final !== null && x.final < NOTA_MINIMA,
+      (x) => x.final !== null && x.final < min,
     ).length;
+    const sit = situacion.find((s) => s.estudiante_id === e.id);
     return {
       id: e.id,
       nombre: `${e.apellidos}, ${e.nombres}`,
       asignaturas: asigs,
       reprobadas,
-      estado: estadoPromocion(reprobadas),
+      situacion: (sit?.situacion ?? "evaluacion_cualitativa") as SituacionAcademica,
     };
   });
 
@@ -159,7 +167,7 @@ export default async function RecuperacionPage({
     <div>
       <PageHeader
         title="Recuperación"
-        description="Completivo · Extraordinario · Especial — tope de nota 70."
+        description="Completivo · Extraordinario · Especial — tope = nota mínima del nivel (65/70)."
         actions={
           seccionSel ? (
             <Button asChild variant="gold" size="sm" className="gap-1.5">
@@ -175,6 +183,7 @@ export default async function RecuperacionPage({
         secciones={seccionesNum.map((s) => ({ id: s.id, label: seccionLabel(s.id) }))}
         seccionSel={seccionSel}
         estudiantes={estudiantes}
+        min={min}
       />
     </div>
   );

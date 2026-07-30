@@ -23,39 +23,30 @@ import {
 } from "@/components/ui/select";
 import { SubmitButton } from "@/components/auth/submit-button";
 import { guardarRecuperacionAction, type ActionState } from "./actions";
-import {
-  ESTADO_PROMOCION_LABELS,
-  INSTANCIA_LABELS,
-  NOTA_MINIMA,
-  type EstadoPromocion,
-} from "@/lib/recovery/types";
+import { INSTANCIA_LABELS } from "@/lib/recovery/types";
+import { SITUACION_LABELS, SITUACION_VARIANT } from "@/lib/actas/types";
 import type { EstudianteRecup } from "./page";
-
-const ESTADO_VARIANT: Record<
-  EstadoPromocion,
-  "success" | "warning" | "destructive"
-> = {
-  promovido: "success",
-  condicionado: "warning",
-  repite: "destructive",
-};
 
 export function RecuperacionView({
   secciones,
   seccionSel,
   estudiantes,
+  min,
 }: {
   secciones: { id: string; label: string }[];
   seccionSel: string;
   estudiantes: EstudianteRecup[];
+  min: number;
 }) {
   const router = useRouter();
   const pathname = usePathname();
 
   const conRecup = estudiantes.filter((e) => e.reprobadas > 0);
-  const promovidos = estudiantes.filter((e) => e.estado === "promovido").length;
-  const condicionados = estudiantes.filter((e) => e.estado === "condicionado").length;
-  const repiten = estudiantes.filter((e) => e.estado === "repite").length;
+  const promovidos = estudiantes.filter(
+    (e) => e.situacion === "promovido" || e.situacion === "promovido_automatico",
+  ).length;
+  const completivo = estudiantes.filter((e) => e.situacion === "completivo").length;
+  const reprobados = estudiantes.filter((e) => e.situacion === "reprobado").length;
 
   return (
     <div className="space-y-4">
@@ -80,8 +71,8 @@ export function RecuperacionView({
         </div>
         <div className="flex gap-2 text-sm">
           <Badge variant="success">Promovidos: {promovidos}</Badge>
-          <Badge variant="warning">Condicionados: {condicionados}</Badge>
-          <Badge variant="destructive">Repiten: {repiten}</Badge>
+          <Badge variant="gold">Completivo: {completivo}</Badge>
+          <Badge variant="destructive">Reprobados: {reprobados}</Badge>
         </div>
       </div>
 
@@ -103,14 +94,14 @@ export function RecuperacionView({
                 <span className="text-xs text-muted-foreground">
                   {e.reprobadas} pendiente(s)
                 </span>
-                <Badge variant={ESTADO_VARIANT[e.estado]}>
-                  {ESTADO_PROMOCION_LABELS[e.estado]}
+                <Badge variant={SITUACION_VARIANT[e.situacion]}>
+                  {SITUACION_LABELS[e.situacion]}
                 </Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
               {e.asignaturas
-                .filter((a) => a.final !== null && a.final < NOTA_MINIMA)
+                .filter((a) => a.final !== null && a.final < min)
                 .map((a) => (
                   <AsignaturaFila
                     key={a.asignaturaId}
@@ -118,6 +109,7 @@ export function RecuperacionView({
                     seccionId={seccionSel}
                     asignatura={a}
                     puedeEspecial={e.reprobadas <= 2}
+                    cap={min}
                   />
                 ))}
             </CardContent>
@@ -133,11 +125,13 @@ function AsignaturaFila({
   seccionId,
   asignatura,
   puedeEspecial,
+  cap,
 }: {
   estudianteId: string;
   seccionId: string;
   asignatura: EstudianteRecup["asignaturas"][number];
   puedeEspecial: boolean;
+  cap: number;
 }) {
   const [state, formAction] = useFormState<ActionState, FormData>(
     guardarRecuperacionAction,
@@ -184,15 +178,15 @@ function AsignaturaFila({
           <div className="space-y-1">
             <Label className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">
               <RefreshCcw className="mr-1 inline h-3 w-3" />
-              {INSTANCIA_LABELS[sig]} (máx 70)
+              {INSTANCIA_LABELS[sig]} (máx {cap})
             </Label>
             <Input
               name="nota"
               type="number"
               min={0}
-              max={70}
+              max={cap}
               step="1"
-              placeholder="0–70"
+              placeholder={`0–${cap}`}
               className="h-9 w-24"
               required
             />
