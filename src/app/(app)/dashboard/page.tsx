@@ -1,13 +1,21 @@
 import type { Metadata } from "next";
 import { requireActiveUser } from "@/lib/auth/require";
 import { DashboardContent } from "./dashboard-content";
+import { ModuloDashboards } from "./modulo-dashboards";
 import { WelcomeCurtain } from "@/components/brand/welcome-curtain";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
-import { ROLE_SHORT } from "@/lib/types";
+import { ROLE_SHORT, type Role } from "@/lib/types";
 import { COLEGIO } from "@/lib/constants";
+import { getAnioActivo } from "@/lib/academic/queries";
+import { getTableroKpis, type TableroKpis } from "@/lib/dashboard/tablero";
+import { getDashKpis, type DashKpis } from "@/lib/reports/queries";
 
 export const metadata: Metadata = { title: "Panel" };
+export const dynamic = "force-dynamic";
+
+const ROLES_TABLERO: Role[] = ["director", "coordinador", "secretaria"];
+const ROLES_FINANCIERO: Role[] = ["director", "coordinador", "contabilidad"];
 
 function saludo(): string {
   const hora = new Date().getHours();
@@ -20,6 +28,21 @@ export default async function DashboardPage() {
   const { profile } = await requireActiveUser();
   const primerNombre = profile.nombre_completo.split(/\s+/)[0] ?? "";
 
+  const verTablero = ROLES_TABLERO.includes(profile.role);
+  const verFinanciero = ROLES_FINANCIERO.includes(profile.role);
+
+  let tablero: TableroKpis | null = null;
+  let financiero: DashKpis | null = null;
+  if (verTablero || verFinanciero) {
+    const anio = await getAnioActivo();
+    const [t, f] = await Promise.all([
+      verTablero && anio ? getTableroKpis(anio.id) : Promise.resolve(null),
+      verFinanciero ? getDashKpis() : Promise.resolve(null),
+    ]);
+    tablero = t;
+    financiero = f;
+  }
+
   return (
     <div>
       <WelcomeCurtain nombre={profile.nombre_completo} />
@@ -28,6 +51,7 @@ export default async function DashboardPage() {
         description={`${COLEGIO.nombre} · Accesos de tu rol`}
         actions={<Badge variant="gold">{ROLE_SHORT[profile.role]}</Badge>}
       />
+      <ModuloDashboards tablero={tablero} financiero={financiero} />
       <DashboardContent role={profile.role} />
     </div>
   );
