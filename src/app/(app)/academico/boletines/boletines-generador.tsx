@@ -3,7 +3,8 @@
 import * as React from "react";
 import { useFormState } from "react-dom";
 import { toast } from "sonner";
-import { FileText, ShieldCheck, CheckCircle2, XCircle, Layers } from "lucide-react";
+import { FileText, ShieldCheck, CheckCircle2, XCircle, Layers, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -114,6 +115,7 @@ const TIPOS: TipoDocumento[] = [
   "constancia_inscripcion",
   "record_notas",
   "buena_conducta",
+  "carta_conclusion_primaria",
 ];
 
 function Individual({
@@ -128,6 +130,10 @@ function Individual({
     {},
   );
   const [tipo, setTipo] = React.useState<TipoDocumento>("boletin_periodo");
+  const [query, setQuery] = React.useState("");
+  const [sel, setSel] = React.useState<{ id: string; nombre: string } | null>(
+    null,
+  );
   const opened = React.useRef<string | null>(null);
 
   React.useEffect(() => {
@@ -137,6 +143,14 @@ function Individual({
       window.open(state.url, "_blank");
     } else if (state.error) toast.error(state.error);
   }, [state]);
+
+  const filtrados = React.useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    return estudiantes
+      .filter((e) => e.nombre.toLowerCase().includes(q))
+      .slice(0, 8);
+  }, [query, estudiantes]);
 
   return (
     <Card>
@@ -153,18 +167,56 @@ function Individual({
         <form action={formAction} className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2 sm:col-span-2">
             <Label>Estudiante</Label>
-            <Select name="estudiante_id" required>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona…" />
-              </SelectTrigger>
-              <SelectContent>
-                {estudiantes.map((e) => (
-                  <SelectItem key={e.id} value={e.id}>
-                    {e.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <input type="hidden" name="estudiante_id" value={sel?.id ?? ""} required />
+            {sel ? (
+              <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
+                <span className="font-medium">{sel.nombre}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSel(null);
+                    setQuery("");
+                  }}
+                >
+                  Cambiar
+                </Button>
+              </div>
+            ) : (
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Escribe apellido o nombre…"
+                  className="pl-9"
+                />
+                {filtrados.length > 0 && (
+                  <ul className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-popover shadow-card">
+                    {filtrados.map((e) => (
+                      <li key={e.id}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSel(e);
+                            setQuery("");
+                          }}
+                          className="block w-full px-3 py-2 text-left text-sm hover:bg-accent"
+                        >
+                          {e.nombre}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {query.trim() && filtrados.length === 0 && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Sin coincidencias.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
           <div className="space-y-2">
             <Label>Tipo de documento</Label>

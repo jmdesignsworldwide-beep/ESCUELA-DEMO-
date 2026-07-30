@@ -3,7 +3,11 @@ import { formatFechaRD } from "@/lib/utils";
 import { COLEGIO } from "@/lib/constants";
 
 interface OficioProps {
-  tipo: "certificacion" | "constancia_inscripcion" | "buena_conducta";
+  tipo:
+    | "certificacion"
+    | "constancia_inscripcion"
+    | "buena_conducta"
+    | "carta_conclusion_primaria";
   folio: string;
   emitidoEmail?: string | null;
   estudiante: { nombre: string; codigo: string; rne: string | null };
@@ -16,6 +20,7 @@ const TITULOS: Record<OficioProps["tipo"], string> = {
   certificacion: "Certificación de Estudios",
   constancia_inscripcion: "Constancia de Inscripción",
   buena_conducta: "Carta de Buena Conducta",
+  carta_conclusion_primaria: "Carta de Conclusión del Nivel Primario",
 };
 
 export function Oficio({
@@ -61,6 +66,20 @@ export function Oficio({
             comunidad educativa durante su permanencia en el{" "}
             {COLEGIO.nombre}, mostrando respeto por las normas de convivencia de
             la institución.
+          </>
+        );
+      case "carta_conclusion_primaria":
+        return (
+          <>
+            La dirección del <strong>{COLEGIO.nombre}</strong> hace constar que
+            el (la) estudiante <strong>{estudiante.nombre}</strong>
+            {estudiante.rne ? `, con RNE ${estudiante.rne},` : ""}{" "}
+            <strong>concluyó satisfactoriamente el Nivel Primario</strong>{" "}
+            (grados 1ro a 6to), habiendo alcanzado las competencias
+            fundamentales y específicas establecidas en el Diseño Curricular del
+            Ministerio de Educación de la República Dominicana (MINERD),
+            conforme a la Ordenanza 04-2023. En virtud de ello, queda apto(a)
+            para continuar sus estudios en el <strong>Nivel Secundario</strong>.
           </>
         );
     }

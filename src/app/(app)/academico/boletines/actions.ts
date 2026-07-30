@@ -42,6 +42,7 @@ const TIPOS = [
   "constancia_inscripcion",
   "record_notas",
   "buena_conducta",
+  "carta_conclusion_primaria",
 ] as const;
 
 const schema = z.object({

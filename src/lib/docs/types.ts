@@ -6,15 +6,17 @@ export type TipoDocumento =
   | "certificacion"
   | "constancia_inscripcion"
   | "record_notas"
-  | "buena_conducta";
+  | "buena_conducta"
+  | "carta_conclusion_primaria";
 
 export const TIPO_DOC_LABELS: Record<TipoDocumento, string> = {
   boletin_periodo: "Boletín por período",
   boletin_anual: "Boletín consolidado anual",
   certificacion: "Certificación de estudios",
   constancia_inscripcion: "Constancia de inscripción",
-  record_notas: "Récord de notas",
+  record_notas: "Récord de notas (MINERD)",
   buena_conducta: "Carta de buena conducta",
+  carta_conclusion_primaria: "Carta de conclusión Nivel Primario",
 };
 
 export interface DocumentoEmitido {

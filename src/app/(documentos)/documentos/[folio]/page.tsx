@@ -15,7 +15,9 @@ import {
 } from "@/lib/inicial/queries";
 import { BoletinNumerico } from "@/components/docs/boletin-numerico";
 import { BoletinInicial } from "@/components/docs/boletin-inicial";
+import { RecordNotasMinerd } from "@/components/docs/record-notas-minerd";
 import { Oficio } from "@/components/docs/oficio";
+import { getNivelesNorma } from "@/lib/academic/normas";
 import { TIPO_DOC_LABELS } from "@/lib/docs/types";
 import type { EscalaInicial } from "@/lib/inicial/types";
 
@@ -49,7 +51,8 @@ export default async function DocumentoPage({
   if (
     doc.tipo === "certificacion" ||
     doc.tipo === "constancia_inscripcion" ||
-    doc.tipo === "buena_conducta"
+    doc.tipo === "buena_conducta" ||
+    doc.tipo === "carta_conclusion_primaria"
   ) {
     return (
       <Oficio
@@ -103,10 +106,11 @@ export default async function DocumentoPage({
     );
   }
 
-  const [asignaturas, pensum, notas] = await Promise.all([
+  const [asignaturas, pensum, notas, normas] = await Promise.all([
     getAsignaturas(ctx.sede.id),
     getPensumSede(ctx.sede.id),
     getBoletinNumerico(ctx.estudiante.id, ctx.anio.id),
+    getNivelesNorma(ctx.sede.id),
   ]);
   const asignaturasGrado = ctx.grado
     ? pensum
@@ -115,6 +119,28 @@ export default async function DocumentoPage({
         .filter((a): a is NonNullable<typeof a> => !!a)
         .map((a) => ({ id: a.id, nombre: a.nombre }))
     : [];
+
+  const minAprob =
+    (ctx.nivel
+      ? normas.find((n) => n.id === ctx.nivel!.id)?.min_aprobacion
+      : null) ?? 70;
+
+  // Récord de notas: transcripción oficial en formato MINERD.
+  if (doc.tipo === "record_notas") {
+    return (
+      <RecordNotasMinerd
+        folio={doc.folio}
+        emitidoEmail={doc.emitido_email}
+        estudiante={est}
+        nivel={nivelNombre}
+        grado={gradoNombre}
+        seccion={seccionNombre}
+        minAprob={minAprob}
+        asignaturas={asignaturasGrado}
+        notas={notas}
+      />
+    );
+  }
 
   return (
     <BoletinNumerico
