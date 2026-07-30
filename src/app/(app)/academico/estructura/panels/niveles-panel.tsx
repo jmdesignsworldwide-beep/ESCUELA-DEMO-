@@ -49,7 +49,7 @@ export function NivelesPanel({
               <CardDescription>
                 {cualitativa
                   ? "Evaluación por indicadores de logro, sin nota numérica."
-                  : "Calificación MINERD 0–100 · aprobación 70."}
+                  : "Calificación MINERD 0–100 · aprobación por nivel (Ajustes)."}
               </CardDescription>
             </CardHeader>
             <CardContent className="mt-auto">

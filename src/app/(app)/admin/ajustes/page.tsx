@@ -9,6 +9,11 @@ import {
   getBitacora,
   getBitacoraAcciones,
 } from "@/lib/settings/queries";
+import {
+  getNivelesNorma,
+  getGradosNorma,
+  getConfigAcademica,
+} from "@/lib/academic/normas";
 
 export const metadata: Metadata = { title: "Ajustes y bitácora" };
 export const dynamic = "force-dynamic";
@@ -30,15 +35,19 @@ export default async function AjustesPage({
     );
   }
 
-  const [config, bitacora, acciones] = await Promise.all([
-    getConfigInstitucional(sede.id),
-    getBitacora({
-      accion: searchParams.accion || undefined,
-      entidad: searchParams.entidad || undefined,
-      desde: searchParams.desde || undefined,
-    }),
-    getBitacoraAcciones(),
-  ]);
+  const [config, bitacora, acciones, niveles, grados, configAcad] =
+    await Promise.all([
+      getConfigInstitucional(sede.id),
+      getBitacora({
+        accion: searchParams.accion || undefined,
+        entidad: searchParams.entidad || undefined,
+        desde: searchParams.desde || undefined,
+      }),
+      getBitacoraAcciones(),
+      getNivelesNorma(sede.id),
+      getGradosNorma(sede.id),
+      getConfigAcademica(sede.id),
+    ]);
 
   return (
     <div>
@@ -54,6 +63,9 @@ export default async function AjustesPage({
           accion: searchParams.accion ?? "",
           entidad: searchParams.entidad ?? "",
         }}
+        niveles={niveles}
+        grados={grados}
+        asistenciaMinima={configAcad.asistencia_minima}
       />
     </div>
   );

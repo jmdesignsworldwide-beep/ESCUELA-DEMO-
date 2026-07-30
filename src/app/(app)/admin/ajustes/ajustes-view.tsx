@@ -4,7 +4,15 @@ import * as React from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useFormState } from "react-dom";
 import { toast } from "sonner";
-import { Building2, ScrollText, ShieldCheck, Filter, X } from "lucide-react";
+import {
+  Building2,
+  ScrollText,
+  ShieldCheck,
+  Filter,
+  X,
+  GraduationCap,
+  Percent,
+} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -34,29 +42,44 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SubmitButton } from "@/components/auth/submit-button";
 import { guardarConfigAction } from "./actions";
+import {
+  guardarNormasAction,
+  toggleRepitenciaAction,
+  type NormasState,
+} from "./normas-actions";
 import type { ActionState } from "@/app/(app)/academico/estructura/actions";
 import { formatFechaRD } from "@/lib/utils";
 import type {
   ConfigInstitucional,
   EntradaBitacora,
 } from "@/lib/settings/types";
+import type { NivelNorma, GradoNorma } from "@/lib/academic/normas";
 
 export function AjustesView({
   config,
   bitacora,
   acciones,
   filtroActual,
+  niveles,
+  grados,
+  asistenciaMinima,
 }: {
   config: ConfigInstitucional | null;
   bitacora: EntradaBitacora[];
   acciones: { accion: string; total: number }[];
   filtroActual: { accion: string; entidad: string };
+  niveles: NivelNorma[];
+  grados: GradoNorma[];
+  asistenciaMinima: number;
 }) {
   return (
     <Tabs defaultValue="ajustes" className="space-y-4">
       <TabsList>
         <TabsTrigger value="ajustes" className="gap-1.5">
           <Building2 className="h-4 w-4" /> Institución
+        </TabsTrigger>
+        <TabsTrigger value="normas" className="gap-1.5">
+          <GraduationCap className="h-4 w-4" /> Normas académicas
         </TabsTrigger>
         <TabsTrigger value="bitacora" className="gap-1.5">
           <ScrollText className="h-4 w-4" /> Bitácora
@@ -65,6 +88,14 @@ export function AjustesView({
 
       <TabsContent value="ajustes">
         <ConfigForm config={config} />
+      </TabsContent>
+
+      <TabsContent value="normas">
+        <NormasForm
+          niveles={niveles}
+          grados={grados}
+          asistenciaMinima={asistenciaMinima}
+        />
       </TabsContent>
 
       <TabsContent value="bitacora">
@@ -141,6 +172,145 @@ function ConfigForm({ config }: { config: ConfigInstitucional | null }) {
         </form>
       </CardContent>
     </Card>
+  );
+}
+
+function NormasForm({
+  niveles,
+  grados,
+  asistenciaMinima,
+}: {
+  niveles: NivelNorma[];
+  grados: GradoNorma[];
+  asistenciaMinima: number;
+}) {
+  const [state, formAction] = useFormState<NormasState, FormData>(
+    guardarNormasAction,
+    {},
+  );
+  const [mins, setMins] = React.useState<Record<string, string>>(
+    Object.fromEntries(
+      niveles.map((n) => [n.id, n.min_aprobacion === null ? "" : String(n.min_aprobacion)]),
+    ),
+  );
+  const [asis, setAsis] = React.useState(String(asistenciaMinima));
+  React.useEffect(() => {
+    if (state.ok) toast.success("Normas académicas guardadas");
+    else if (state.error) toast.error(state.error);
+  }, [state]);
+
+  const payload = JSON.stringify({
+    asistencia_minima: Number(asis),
+    niveles: niveles.map((n) => ({
+      id: n.id,
+      min_aprobacion: mins[n.id] === "" ? "" : Number(mins[n.id]),
+    })),
+  });
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Nota mínima de aprobación por nivel</CardTitle>
+          <CardDescription>
+            Ordenanza 04-2023 MINERD · Primaria 65 · Secundaria 70 · Inicial
+            cualitativa (deja vacío). Editable si la normativa cambia.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={formAction} className="space-y-5">
+            <input type="hidden" name="payload" value={payload} />
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {niveles.map((n) => (
+                <div key={n.id} className="space-y-1.5">
+                  <Label className="text-sm">{n.nombre}</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step="1"
+                    value={mins[n.id] ?? ""}
+                    onChange={(e) =>
+                      setMins((m) => ({ ...m, [n.id]: e.target.value }))
+                    }
+                    placeholder="Cualitativa"
+                    className="h-9"
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="max-w-xs space-y-1.5">
+              <Label className="flex items-center gap-1.5 text-sm">
+                <Percent className="h-3.5 w-3.5" /> Asistencia mínima (%)
+              </Label>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                value={asis}
+                onChange={(e) => setAsis(e.target.value)}
+                className="h-9"
+              />
+              <p className="text-xs text-muted-foreground">
+                Bajo este umbral, el motor marca condición de asistencia (puede
+                reprobar el grado según la ordenanza).
+              </p>
+            </div>
+            <SubmitButton loadingText="Guardando…">Guardar normas</SubmitButton>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Repitencia por grado</CardTitle>
+          <CardDescription>
+            1º y 2º de Primaria no contemplan repitencia (prioridad de
+            alfabetización inicial). Desmarca los grados que no repiten.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-1.5">
+          {grados.map((g) => (
+            <RepitenciaRow key={g.id} grado={g} />
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function RepitenciaRow({ grado }: { grado: GradoNorma }) {
+  const [state, formAction] = useFormState<NormasState, FormData>(
+    toggleRepitenciaAction,
+    {},
+  );
+  React.useEffect(() => {
+    if (state.ok) toast.success("Repitencia actualizada");
+    else if (state.error) toast.error(state.error);
+  }, [state]);
+
+  const permite = grado.permite_repitencia; // valor actual (servidor)
+  const target = !permite; // al hacer clic, se invierte
+
+  return (
+    <form
+      action={formAction}
+      className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
+    >
+      <span className="text-sm">
+        {grado.nivel_nombre} · {grado.nombre}
+      </span>
+      <input type="hidden" name="grado_id" value={grado.id} />
+      <input type="hidden" name="permite" value={target ? "on" : "off"} />
+      <SubmitButton
+        size="sm"
+        variant={permite ? "outline" : "secondary"}
+        loadingText="…"
+        className="min-w-[9rem]"
+      >
+        {permite ? "Repite (normal)" : "No repite"}
+      </SubmitButton>
+    </form>
   );
 }
 
