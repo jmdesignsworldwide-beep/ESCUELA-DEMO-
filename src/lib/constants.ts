@@ -22,6 +22,7 @@ import {
   UserCog,
   Contact,
   MessageSquare,
+  MessageCircle,
   ShieldAlert,
   Library,
   BarChart3,
@@ -221,6 +222,12 @@ export const NAV_GROUPS: NavGroup[] = [
         href: "/admin/comunicacion",
         icon: MessageSquare,
         roles: ["director", "coordinador", "secretaria"],
+      },
+      {
+        label: "WhatsApp",
+        href: "/admin/whatsapp",
+        icon: MessageCircle,
+        roles: ["director", "coordinador", "secretaria", "contabilidad"],
       },
       {
         label: "Disciplina",
