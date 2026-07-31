@@ -219,6 +219,12 @@ export const NAV_GROUPS: NavGroup[] = [
     title: "Administración",
     items: [
       {
+        label: "Tablero ejecutivo",
+        href: "/admin/tablero",
+        icon: LayoutDashboard,
+        roles: ["director", "coordinador"],
+      },
+      {
         label: "Admisiones",
         href: "/admin/admisiones",
         icon: UserPlus,
