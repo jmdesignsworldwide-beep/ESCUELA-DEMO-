@@ -10,12 +10,13 @@ import {
 } from "@/lib/portal/queries";
 import { getCircularesVisibles } from "@/lib/comms/queries";
 import { getConductaPortal } from "@/lib/discipline/queries";
-import { getAnioActivo } from "@/lib/academic/queries";
+import { getAnioActivo, getPeriodos } from "@/lib/academic/queries";
 import {
   getPortalAsistenciaPct,
   getPortalAsistenciaMensual,
   getPortalAsistenciaPeriodo,
 } from "@/lib/attendance/analytics";
+import { getBoletinAreas } from "@/lib/competencias/queries";
 
 // Umbral estándar MINERD de asistencia visible a la familia (Ord. 04-2023).
 const ASISTENCIA_MINIMA = 80;
@@ -42,6 +43,9 @@ export default async function PortalPage({
 
   const anio = await getAnioActivo();
   const est = seleccionado.estudiante_id;
+  const periodos = anio ? await getPeriodos(anio.id) : [];
+  const periodoActivo =
+    periodos.find((p) => p.estado === "en_curso") ?? periodos[0] ?? null;
 
   const [
     calificaciones,
@@ -52,6 +56,7 @@ export default async function PortalPage({
     asisPct,
     asisMensual,
     asisPeriodo,
+    boletinAreas,
   ] = await Promise.all([
     getPortalCalificaciones(est),
     getPortalAsistencia(est),
@@ -61,6 +66,9 @@ export default async function PortalPage({
     anio ? getPortalAsistenciaPct(est, anio.id) : Promise.resolve(100),
     anio ? getPortalAsistenciaMensual(est, anio.id) : Promise.resolve([]),
     anio ? getPortalAsistenciaPeriodo(est, anio.id) : Promise.resolve([]),
+    periodoActivo && !seleccionado.bloqueado
+      ? getBoletinAreas(est, periodoActivo.id)
+      : Promise.resolve([]),
   ]);
 
   return (
@@ -75,6 +83,8 @@ export default async function PortalPage({
       asistenciaMensual={asisMensual}
       asistenciaPeriodo={asisPeriodo}
       asistenciaMinima={ASISTENCIA_MINIMA}
+      boletinAreas={boletinAreas}
+      periodoNombre={periodoActivo?.nombre ?? ""}
       finanzas={finanzas}
       circulares={circulares}
       conducta={conducta}

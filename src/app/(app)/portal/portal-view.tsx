@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import {
   GraduationCap,
@@ -41,6 +42,7 @@ import {
   type AsistenciaMes,
   type AsistenciaPeriodo,
 } from "@/lib/attendance/analytics-types";
+import type { BoletinAreaRow } from "@/lib/competencias/types";
 
 export function PortalView({
   esTutor,
@@ -53,6 +55,8 @@ export function PortalView({
   asistenciaMensual,
   asistenciaPeriodo,
   asistenciaMinima,
+  boletinAreas,
+  periodoNombre,
   finanzas,
   circulares,
   conducta,
@@ -67,10 +71,17 @@ export function PortalView({
   asistenciaMensual: AsistenciaMes[];
   asistenciaPeriodo: AsistenciaPeriodo[];
   asistenciaMinima: number;
+  boletinAreas: BoletinAreaRow[];
+  periodoNombre: string;
   finanzas: PortalCargo[];
   circulares: CircularVisible[];
   conducta: ConductaPortal[];
 }) {
+  const saldoPendiente = finanzas
+    .filter((c) => c.estado !== "pagado")
+    .reduce((s, c) => s + c.monto, 0);
+  const puntosConducta = conducta.reduce((s, c) => s + c.puntos, 0);
+  const asisOk = asistenciaPct >= asistenciaMinima;
   const router = useRouter();
   const pathname = usePathname();
 
@@ -134,6 +145,28 @@ export function PortalView({
         </CardContent>
       </Card>
 
+      {/* Tira de indicadores rápidos */}
+      <div className="grid grid-cols-3 gap-2">
+        <QuickStat
+          icon={<ClipboardCheck className="h-4 w-4" />}
+          label="Asistencia"
+          value={`${asistenciaPct.toFixed(0)}%`}
+          tone={asisOk ? "success" : "danger"}
+        />
+        <QuickStat
+          icon={<CircleDollarSign className="h-4 w-4" />}
+          label="Saldo"
+          value={saldoPendiente > 0 ? formatRD(saldoPendiente) : "Al día"}
+          tone={saldoPendiente > 0 ? "danger" : "success"}
+        />
+        <QuickStat
+          icon={<Sparkles className="h-4 w-4" />}
+          label="Conducta"
+          value={`${puntosConducta > 0 ? "+" : ""}${puntosConducta} pts`}
+          tone={puntosConducta >= 0 ? "success" : "danger"}
+        />
+      </div>
+
       <Tabs defaultValue="academico">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="academico" className="gap-1.5">
@@ -159,39 +192,93 @@ export function PortalView({
         </TabsList>
 
         {/* ── Académico (bloqueable por morosidad) ── */}
-        <TabsContent value="academico" className="mt-3">
+        <TabsContent value="academico" className="mt-3 space-y-3">
           {seleccionado.bloqueado ? (
             <BloqueoMorosidad pendiente={seleccionado.pendiente} />
           ) : (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Calificaciones</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-1.5">
-                {calificaciones.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-muted-foreground">
-                    Aún no hay calificaciones publicadas.
-                  </p>
-                ) : (
-                  calificaciones.map((c) => (
-                    <div
-                      key={c.asignatura}
-                      className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
-                    >
-                      <span className="text-sm">{c.asignatura}</span>
-                      <span
-                        className={
-                          "font-semibold tabular-nums " +
-                          (c.promedio >= 70 ? "text-success" : "text-destructive")
-                        }
+            <>
+              {boletinAreas.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">
+                      Boletín por competencias
+                    </CardTitle>
+                    {periodoNombre && (
+                      <p className="text-xs text-muted-foreground">
+                        {periodoNombre} · Ordenanza 04-2023 (MINERD)
+                      </p>
+                    )}
+                  </CardHeader>
+                  <CardContent className="space-y-1.5">
+                    {boletinAreas.map((a) => (
+                      <div
+                        key={a.asignatura_id}
+                        className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2"
                       >
-                        {c.promedio.toFixed(2)}
-                      </span>
-                    </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>
+                        <span className="min-w-0 truncate text-sm">
+                          {a.asignatura}
+                        </span>
+                        <span className="flex shrink-0 items-center gap-2">
+                          {a.banda && (
+                            <span
+                              className="rounded-full px-2 py-0.5 text-[0.65rem] font-medium"
+                              style={{
+                                backgroundColor: `${a.color ?? "#5B6B7F"}1A`,
+                                color: a.color ?? "#5B6B7F",
+                              }}
+                            >
+                              {a.banda_corta ?? a.banda}
+                            </span>
+                          )}
+                          <span
+                            className={
+                              "w-8 text-right font-semibold tabular-nums " +
+                              (a.aprobada ? "text-success" : "text-destructive")
+                            }
+                          >
+                            {a.nota_area}
+                          </span>
+                        </span>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">
+                    Promedios por asignatura
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1.5">
+                  {calificaciones.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-muted-foreground">
+                      Aún no hay calificaciones publicadas.
+                    </p>
+                  ) : (
+                    calificaciones.map((c) => (
+                      <div
+                        key={c.asignatura}
+                        className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
+                      >
+                        <span className="text-sm">{c.asignatura}</span>
+                        <span
+                          className={
+                            "font-semibold tabular-nums " +
+                            (c.promedio >= 70
+                              ? "text-success"
+                              : "text-destructive")
+                          }
+                        >
+                          {c.promedio.toFixed(2)}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            </>
           )}
         </TabsContent>
 
@@ -403,9 +490,51 @@ export function PortalView({
 
         {/* ── Finanzas (siempre visible) ── */}
         <TabsContent value="finanzas" className="mt-3">
+          {(() => {
+            const pendientes = finanzas
+              .filter((c) => c.estado !== "pagado")
+              .sort((a, b) =>
+                (a.vencimiento ?? "9999").localeCompare(b.vencimiento ?? "9999"),
+              );
+            const proximo = pendientes[0];
+            return (
+              <Card
+                className={
+                  "mb-3 " +
+                  (saldoPendiente > 0
+                    ? "border-destructive/40 bg-destructive/5"
+                    : "border-success/40 bg-success/5")
+                }
+              >
+                <CardContent className="flex items-center justify-between gap-3 py-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Saldo pendiente</p>
+                    <p
+                      className={
+                        "font-serif text-2xl font-semibold " +
+                        (saldoPendiente > 0 ? "text-destructive" : "text-success")
+                      }
+                    >
+                      {saldoPendiente > 0 ? formatRD(saldoPendiente) : "Al día"}
+                    </p>
+                  </div>
+                  {proximo?.vencimiento && (
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground">
+                        Próximo vencimiento
+                      </p>
+                      <p className="text-sm font-medium">
+                        {formatFechaRD(new Date(proximo.vencimiento))}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })()}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Estado de cuenta</CardTitle>
+              <CardTitle className="text-base">Detalle de cargos</CardTitle>
             </CardHeader>
             <CardContent className="space-y-1.5">
               {finanzas.length === 0 ? (
@@ -517,6 +646,31 @@ function BloqueoMorosidad({ pendiente }: { pendiente: number }) {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function QuickStat({
+  icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  tone: "success" | "danger";
+}) {
+  const toneClass = tone === "success" ? "text-success" : "text-destructive";
+  return (
+    <div className="rounded-xl border border-border bg-card p-2.5 text-center">
+      <span
+        className={"mx-auto mb-0.5 flex w-fit items-center gap-1 " + toneClass}
+      >
+        {icon}
+      </span>
+      <p className={"truncate text-sm font-semibold " + toneClass}>{value}</p>
+      <p className="text-[0.65rem] text-muted-foreground">{label}</p>
+    </div>
   );
 }
 
