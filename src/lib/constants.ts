@@ -23,6 +23,7 @@ import {
   Contact,
   MessageSquare,
   MessageCircle,
+  UserPlus,
   ShieldAlert,
   Library,
   BarChart3,
@@ -217,6 +218,12 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: "Administración",
     items: [
+      {
+        label: "Admisiones",
+        href: "/admin/admisiones",
+        icon: UserPlus,
+        roles: ["director", "coordinador", "secretaria"],
+      },
       {
         label: "Comunicación",
         href: "/admin/comunicacion",

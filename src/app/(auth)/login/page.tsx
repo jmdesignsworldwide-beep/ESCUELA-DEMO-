@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { KeyRound } from "lucide-react";
+import { KeyRound, GraduationCap } from "lucide-react";
 import { LoginForm } from "./login-form";
 import { Logo } from "@/components/brand/logo";
 import {
@@ -47,13 +47,20 @@ export default function LoginPage({
           )}
           <LoginForm next={searchParams.next} />
 
-          <div className="mt-6 border-t border-border pt-4">
+          <div className="mt-6 space-y-3 border-t border-border pt-4">
             <Link
               href="/pin"
               className="flex items-center justify-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary-medium"
             >
               <KeyRound className="h-4 w-4" />
               Soy docente — entrar con PIN
+            </Link>
+            <Link
+              href="/admision"
+              className="flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <GraduationCap className="h-4 w-4" />
+              ¿Nuevo ingreso? Solicita admisión
             </Link>
           </div>
         </CardContent>

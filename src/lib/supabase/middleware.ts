@@ -5,7 +5,7 @@ import { hasSupabaseEnv } from "@/lib/supabase/env";
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
 /** Rutas públicas que no requieren sesión. */
-const PUBLIC_ROUTES = ["/login", "/pin", "/auth", "/verificar"];
+const PUBLIC_ROUTES = ["/login", "/pin", "/auth", "/verificar", "/admision"];
 
 function isPublic(pathname: string): boolean {
   return PUBLIC_ROUTES.some(
